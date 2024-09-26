@@ -9,21 +9,21 @@ import (
 	"io"
 )
 
-type Cipher struct {
+type aesCipher struct {
 	curve  ecdh.Curve
 	pk     *ecdh.PrivateKey
 	shared []byte
 }
 
-type AESCrypted struct {
+type aesCrypted struct {
 	ciphertext []byte
 	nonce      []byte
 	tagOffset  int
 }
 
-func NewCipher() (*Cipher, error) {
+func newCipher() (*aesCipher, error) {
 	var (
-		c Cipher
+		c aesCipher
 		e error
 	)
 	c.curve = ecdh.P256()
@@ -34,11 +34,11 @@ func NewCipher() (*Cipher, error) {
 	return &c, nil
 }
 
-func (c *Cipher) PublicKey() []byte {
+func (c *aesCipher) PublicKey() []byte {
 	return c.pk.PublicKey().Bytes()
 }
 
-func (c *Cipher) SharedSecret(remote []byte) error {
+func (c *aesCipher) SharedSecret(remote []byte) error {
 	pb, e := c.curve.NewPublicKey(remote)
 	if e != nil {
 		return e
@@ -50,31 +50,31 @@ func (c *Cipher) SharedSecret(remote []byte) error {
 	return nil
 }
 
-func (c *Cipher) Encrypt(data []byte) (AESCrypted, error) {
+func (c *aesCipher) Encrypt(data []byte) (aesCrypted, error) {
 	block, err := aes.NewCipher(c.shared)
 	if err != nil {
-		return AESCrypted{}, err
+		return aesCrypted{}, err
 	}
 
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return AESCrypted{}, err
+		return aesCrypted{}, err
 	}
 
 	nonce := make([]byte, gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return AESCrypted{}, err
+		return aesCrypted{}, err
 	}
 
 	ciphertext := gcm.Seal(nil, nonce, data, nil)
-	return AESCrypted{
+	return aesCrypted{
 		ciphertext: ciphertext,
 		nonce:      nonce,
 		tagOffset:  len(ciphertext) - gcm.Overhead(),
 	}, nil
 }
 
-func (c *Cipher) Decrypt(ctext AESCrypted) ([]byte, error) {
+func (c *aesCipher) Decrypt(ctext aesCrypted) ([]byte, error) {
 	block, err := aes.NewCipher(c.shared)
 	if err != nil {
 		return nil, err

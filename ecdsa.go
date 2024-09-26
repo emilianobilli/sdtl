@@ -20,7 +20,8 @@ func signMessage(privKey *ecdsa.PrivateKey, message []byte) ([64]byte, error) {
 	if err != nil {
 		return signature, err
 	}
-
+	fmt.Println(r.Bytes(), len(r.Bytes()))
+	fmt.Println(s.Bytes(), len(s.Bytes()))
 	copy(signature[0:32], r.Bytes())
 	copy(signature[32:64], s.Bytes())
 
@@ -32,6 +33,8 @@ func verifySignature(pubKey *ecdsa.PublicKey, message []byte, signature [64]byte
 
 	r := new(big.Int).SetBytes(signature[:32])
 	s := new(big.Int).SetBytes(signature[32:])
+
+	fmt.Println("Signature: ", signature, "Message: ", message)
 
 	valid := ecdsa.Verify(pubKey, hash[:], r, s)
 	return valid

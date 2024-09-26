@@ -13,11 +13,12 @@ type Socket struct {
 	laddr     *net.UDPAddr
 	raddr     *net.UDPAddr
 	conn      *net.UDPConn
+	connected bool
 	session   [8]byte
-	encrypt   *Cipher
+	encrypt   *aesCipher
 }
 
-func (c *Socket) packHandShakeMessage(msgType uint, msg HandShakeInterface) ([]byte, error) {
+func (c *Socket) packHandShakeMessage(msgType uint, msg handShakeInterface) ([]byte, error) {
 	pack := make([]byte, 2+msg.size())
 	body, err := msg.dump(c.signerkey)
 	if err != nil {
@@ -68,7 +69,7 @@ func (s *Socket) Connect(address string, key *ecdsa.PublicKey) error {
 	}
 
 	s.session = createRandomSession()
-
+	fmt.Println("Session: ", s.session)
 	e = s.handShakeClient()
 	if e != nil {
 		s.conn.Close()
@@ -114,12 +115,12 @@ func (s *Socket) readFromUDP() ([]byte, *net.UDPAddr, error) {
 
 func (s *Socket) handShakeClient() error {
 	var (
-		start StartHandShake
-		hsmsg HandShake
+		start startHandShake
+		hsmsg handShake
 	)
 
 	start.session = s.session
-	pkg, err := s.packHandShakeMessage(StartHandShakeMsg, &start)
+	pkg, err := s.packHandShakeMessage(startHandShakeMsg, &start)
 	if err != nil {
 		return err
 	}
@@ -135,6 +136,7 @@ func (s *Socket) handShakeClient() error {
 
 		for {
 			data, addr, err := s.readFromUDP()
+			fmt.Println(data, addr, err)
 			if err != nil {
 				if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
 					// Stablish again 1 sec of tolerance
@@ -146,11 +148,12 @@ func (s *Socket) handShakeClient() error {
 			}
 
 			// Drop Message
-			if data[0] != ProtocolVer || data[1] != ServerHandShakeMsg {
+			if data[0] != ProtocolVer || data[1] != serverHandShakeMsg {
 				continue
 			}
 			// Drop Message
-			err = hsmsg.load(s.verifykey, data)
+			err = hsmsg.load(s.verifykey, data[2:])
+			fmt.Println("Cliente: ", err)
 			if err != nil || hsmsg.session != s.session || addr.String() != s.raddr.String() {
 				continue
 			}
@@ -164,21 +167,23 @@ func (s *Socket) handShakeClient() error {
 		return fmt.Errorf("handshake timeout")
 	}
 
-	s.encrypt, err = NewCipher()
+	s.encrypt, err = newCipher()
 	if err != nil {
 		return err
 	}
 
 	err = s.encrypt.SharedSecret(hsmsg.epk[:])
+	fmt.Println("Cliente Secret: ", err)
 	if err != nil {
 		return err
 	}
 
 	// Store the public key
-	copy(hsmsg.session[:], s.encrypt.PublicKey())
+	hsmsg.session = s.session
+	copy(hsmsg.epk[:], s.encrypt.PublicKey())
 
 	hsmsg.signature = [64]byte{}
-	pkg, err = s.packHandShakeMessage(ClientHandShakeMsg, &hsmsg)
+	pkg, err = s.packHandShakeMessage(clientHandShakeMsg, &hsmsg)
 	if err != nil {
 		return err
 	}
@@ -188,22 +193,23 @@ func (s *Socket) handShakeClient() error {
 
 func (s *Socket) handShakeServer() error {
 	var (
-		start StartHandShake
-		hsmsg HandShake
+		start startHandShake
+		hsmsg handShake
 		err   error
 	)
 
 	success := false
 	for !success {
 		data, addr, err := s.readFromUDP()
+		fmt.Println("Server: ", data, addr, err)
 		if err != nil {
 			return err
 		}
-		if data[0] != ProtocolVer || data[1] != StartHandShakeMsg {
+		if data[0] != ProtocolVer || data[1] != startHandShakeMsg {
 			continue
 		}
 
-		err = start.load(s.verifykey, data)
+		err = start.load(s.verifykey, data[2:])
 		if err != nil {
 			continue
 		}
@@ -216,10 +222,10 @@ func (s *Socket) handShakeServer() error {
 	}
 
 	hsmsg.session = s.session
-	s.encrypt, err = NewCipher()
+	s.encrypt, err = newCipher()
 	copy(hsmsg.epk[:], s.encrypt.PublicKey())
 
-	pkt, err := s.packHandShakeMessage(ServerHandShakeMsg, &hsmsg)
+	pkt, err := s.packHandShakeMessage(serverHandShakeMsg, &hsmsg)
 	if err != nil {
 		return nil
 	}
@@ -244,11 +250,11 @@ func (s *Socket) handShakeServer() error {
 				return err
 			}
 			// Drop Message
-			if data[1] != ClientHandShakeMsg {
+			if data[1] != clientHandShakeMsg {
 				continue
 			}
 			// Drop Message
-			err = hsmsg.load(s.verifykey, data)
+			err = hsmsg.load(s.verifykey, data[2:])
 			if err != nil || hsmsg.session != s.session || addr.String() != s.raddr.String() {
 				continue
 			}
@@ -264,4 +270,43 @@ func (s *Socket) handShakeServer() error {
 
 	err = s.encrypt.SharedSecret(hsmsg.epk[:])
 	return err
+}
+
+func (s *Socket) Send(data []byte) error {
+	var buffer [2048]byte
+
+	buffer[0] = ProtocolVer
+	buffer[1] = dataFrameMsg
+
+	tmp, err := dumpDataFrame(s.encrypt, data)
+	if err != nil {
+		return err
+	}
+
+	copy(buffer[2:], tmp)
+	_, err = s.conn.WriteToUDP(buffer[:len(tmp)+2], s.raddr)
+	return err
+}
+
+func (s *Socket) Recv() ([]byte, error) {
+	var buffer [2048]byte
+
+	n, addr, err := s.conn.ReadFromUDP(buffer[:])
+	if err != nil {
+		return nil, err
+	}
+	if addr.String() != s.raddr.String() {
+		return nil, nil
+	}
+
+	if buffer[0] != ProtocolVer || buffer[1] != dataFrameMsg {
+		return nil, nil
+	}
+
+	tmp, err := loadDataFrame(s.encrypt, buffer[2:n])
+	if err != nil {
+		return nil, err
+	}
+
+	return tmp, nil
 }
