@@ -69,7 +69,6 @@ func (s *Socket) Connect(address string, key *ecdsa.PublicKey) error {
 	}
 
 	s.session = createRandomSession()
-	fmt.Println("Session: ", s.session)
 	e = s.handShakeClient()
 	if e != nil {
 		s.conn.Close()
@@ -136,7 +135,6 @@ func (s *Socket) handShakeClient() error {
 
 		for {
 			data, addr, err := s.readFromUDP()
-			fmt.Println(data, addr, err)
 			if err != nil {
 				if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
 					// Stablish again 1 sec of tolerance
@@ -153,7 +151,6 @@ func (s *Socket) handShakeClient() error {
 			}
 			// Drop Message
 			err = hsmsg.load(s.verifykey, data[2:])
-			fmt.Println("Cliente: ", err)
 			if err != nil || hsmsg.session != s.session || addr.String() != s.raddr.String() {
 				continue
 			}
@@ -173,7 +170,6 @@ func (s *Socket) handShakeClient() error {
 	}
 
 	err = s.encrypt.SharedSecret(hsmsg.epk[:])
-	fmt.Println("Cliente Secret: ", err)
 	if err != nil {
 		return err
 	}
@@ -201,7 +197,6 @@ func (s *Socket) handShakeServer() error {
 	success := false
 	for !success {
 		data, addr, err := s.readFromUDP()
-		fmt.Println("Server: ", data, addr, err)
 		if err != nil {
 			return err
 		}
@@ -291,22 +286,23 @@ func (s *Socket) Send(data []byte) error {
 func (s *Socket) Recv() ([]byte, error) {
 	var buffer [2048]byte
 
-	n, addr, err := s.conn.ReadFromUDP(buffer[:])
-	if err != nil {
-		return nil, err
-	}
-	if addr.String() != s.raddr.String() {
-		return nil, nil
-	}
+	for {
+		n, addr, err := s.conn.ReadFromUDP(buffer[:])
+		if err != nil {
+			return nil, err
+		}
+		if addr.String() != s.raddr.String() {
+			continue // Drop
+		}
 
-	if buffer[0] != ProtocolVer || buffer[1] != dataFrameMsg {
-		return nil, nil
-	}
+		if buffer[0] != ProtocolVer || buffer[1] != dataFrameMsg {
+			continue // Drop
+		}
 
-	tmp, err := loadDataFrame(s.encrypt, buffer[2:n])
-	if err != nil {
-		return nil, err
+		tmp, err := loadDataFrame(s.encrypt, buffer[2:n])
+		if err != nil {
+			return nil, err
+		}
+		return tmp, nil
 	}
-
-	return tmp, nil
 }
