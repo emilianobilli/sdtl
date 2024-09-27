@@ -89,6 +89,7 @@ func main() {
 
 	for {
 		b, e := sock.Recv()
+		fmt.Println("Recv", b)
 		if e != nil {
 			fmt.Println("sdtl recv frame: %v", e)
 			return

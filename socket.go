@@ -292,10 +292,12 @@ func (s *Socket) Recv() ([]byte, error) {
 			return nil, err
 		}
 		if addr.String() != s.raddr.String() {
+			fmt.Println("Estoy dropeando diferentes direcciones")
 			continue // Drop
 		}
 
 		if buffer[0] != ProtocolVer || buffer[1] != dataFrameMsg {
+			fmt.Println("Estoy dropeando protocolo incorrecto")
 			continue // Drop
 		}
 
