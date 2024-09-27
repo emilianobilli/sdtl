@@ -80,6 +80,7 @@ func main() {
 				fmt.Println("read frame: %v", e)
 				return
 			}
+			fmt.Println("Send: ", frame.RawIP())
 			if e := sock.Send(frame.RawIP()); e != nil {
 				fmt.Println("sdtl send frame: %v", e)
 				return
