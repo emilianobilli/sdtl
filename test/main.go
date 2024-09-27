@@ -20,6 +20,9 @@ func main() {
 	listen := flag.Bool("listen", false, "Is server")
 	flag.Parse() // Parsear los argumentos de la línea de comandos
 
+	fmt.Println("Server: ", *server)
+	fmt.Println("Listen: ", *listen)
+
 	// Verificar que se haya pasado un servidor
 	if !*listen && *server == "" {
 		fmt.Println("Error: server address is required")
@@ -72,6 +75,7 @@ func main() {
 	go func() {
 		for {
 			frame, e := eth.ReadEthFrame()
+			fmt.Println(frame.GetIP())
 			if e != nil {
 				fmt.Println("read frame: %v", e)
 				return
