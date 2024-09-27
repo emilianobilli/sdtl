@@ -13,7 +13,8 @@ const (
 )
 
 func main() {
-
+	var sock *sdtl.Socket
+	var err error
 	// Definir el argumento de la línea de comandos para el servidor
 	server := flag.String("server", "", "Address of the server to connect to")
 	listen := flag.Bool("listen", false, "Is server")
@@ -43,14 +44,22 @@ func main() {
 		return
 	}
 
-	sock, err := sdtl.NewSocket("", prikey)
-	if err != nil {
-		fmt.Println("open create socket: %v", err)
-		return
+	if *listen {
+		sock, err = sdtl.NewSocket(*server, prikey)
+		if err != nil {
+			fmt.Println("open create socket: %v", err)
+			return
+		}
+	} else {
+		sock, err = sdtl.NewSocket("", prikey)
+		if err != nil {
+			fmt.Println("open create socket: %v", err)
+			return
+		}
 	}
 
 	if *listen {
-		e := sock.Accept(*server, pubkey)
+		e := sock.Accept("", pubkey)
 		if e != nil {
 			fmt.Println("connect to server: %v", e)
 			return
