@@ -8,7 +8,9 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"math/big"
+	"os"
 )
 
 func signMessage(privKey *ecdsa.PrivateKey, message []byte) ([64]byte, error) {
@@ -104,4 +106,22 @@ func UnmarshalECDSAPublicKey(pemData []byte) (*ecdsa.PublicKey, error) {
 
 func GenerateKey() (*ecdsa.PrivateKey, error) {
 	return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+}
+
+func PrivateFromPemFile(file string) (*ecdsa.PrivateKey, error) {
+	f, e := os.Open(file)
+	if e != nil {
+		return nil, e
+	}
+	b, e := io.ReadAll(f)
+	return UnmarshalECDSAPrivateKey(b)
+}
+
+func PublicKeyFromPemFile(file string) (*ecdsa.PublicKey, error) {
+	f, e := os.Open(file)
+	if e != nil {
+		return nil, e
+	}
+	b, e := io.ReadAll(f)
+	return UnmarshalECDSAPublicKey(b)
 }
