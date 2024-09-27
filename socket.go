@@ -273,6 +273,7 @@ func (s *Socket) Send(data []byte) error {
 	buffer[0] = ProtocolVer
 	buffer[1] = dataFrameMsg
 
+	fmt.Println("Socket Send: ", len(data))
 	tmp, err := dumpDataFrame(s.encrypt, data)
 	if err != nil {
 		return err
