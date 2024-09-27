@@ -75,6 +75,7 @@ func main() {
 	go func() {
 		for {
 			frame, e := eth.ReadEthFrame()
+			fmt.Println("Len: ", frame.Len())
 			fmt.Println(frame.GetIP())
 			if e != nil {
 				fmt.Println("read frame: %v", e)
