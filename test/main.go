@@ -94,7 +94,7 @@ func main() {
 			fmt.Println("sdtl recv frame: %v", e)
 			return
 		}
-		eth.WriteRawIP(b)
+		fmt.Println(eth.WriteRawIP(b))
 	}
 
 }
