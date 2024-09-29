@@ -12,6 +12,7 @@ type Socket struct {
 	verifykey *ecdsa.PublicKey
 	raddr     *net.UDPAddr
 	conn      *net.UDPConn
+	ip        net.IP
 	connected bool
 	session   [8]byte
 	encrypt   *aesCipher
@@ -63,8 +64,8 @@ func (s *Socket) Connect(to string, key *ecdsa.PublicKey, ip string) error {
 	if e != nil {
 		return e
 	}
-
-	s.session = packIPinSession(ip)
+	s.ip = net.ParseIP(ip)
+	s.session = createRandomSession()
 	e = s.handShakeClient()
 	if e != nil {
 		s.conn.Close()
@@ -90,6 +91,7 @@ func (s *Socket) handShakeClient() error {
 	)
 
 	start.session = s.session
+	copy(start.ip[:], s.ip.To4())
 	pkg, err := s.packHandShakeMessage(msgSTR, &start)
 	if err != nil {
 		return err
