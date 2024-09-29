@@ -101,7 +101,7 @@ func handleSTR(signkey *ecdsa.PrivateKey, msg *IOMessage) (*IOMessage, error) {
 	)
 	ct := getConnTable()
 	ip := extractIP(msg.buffer[2:])
-
+	fmt.Println(ip)
 	conn, e := ct.getConnectionByPrivate(ip)
 	if e != nil {
 		return nil, errorf("handleSTR", "private address not found", e)
