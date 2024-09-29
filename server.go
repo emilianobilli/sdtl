@@ -203,7 +203,7 @@ func (s *Server) ListenAndServe() {
 		}
 
 		if err != nil {
-			log("ERROR: message from: %s, size: %d, result in error. %v - Drop", msg.addr.String(), msg.n, err)
+			log("ERROR: message %v - Drop", err)
 		}
 
 		if msg != nil {

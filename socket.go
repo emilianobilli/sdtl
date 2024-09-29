@@ -59,6 +59,10 @@ func (s *Socket) Connect(to string, key *ecdsa.PublicKey, ip string) error {
 	}
 
 	s.verifykey = key
+	s.conn, e = net.ListenUDP("udp4", nil)
+	if e != nil {
+		return e
+	}
 
 	s.session = packIPinSession(ip)
 	e = s.handShakeClient()
