@@ -3,20 +3,23 @@ package sdtl
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"net"
 )
 
 const (
 	ProtocolVer = 0xDF
 
-	startHandShakeMsg  = 0x01
-	serverHandShakeMsg = 0x02
-	clientHandShakeMsg = 0x03
+	msgSTR = 0x01
+	msgSHS = 0x02
+	msgCHS = 0x03
+	msgDFE = 0xaa
 
-	handShakeSize           = 8 + 65 + 64
-	handShakeEPKOffset      = 8
-	handShakeSigOffset      = 73
-	startHandShakeSize      = 73
-	startHandShakeSigOffset = 8
+	sizeXHS      = 8 + 65 + 64
+	xhsEPKOffset = 8
+	xhsSigOffset = 73
+	sizeSTR      = 76
+	strSesOffset = 4
+	strSigOffset = 12
 )
 
 type handShakeInterface interface {
@@ -26,6 +29,7 @@ type handShakeInterface interface {
 }
 
 type startHandShake struct {
+	ip        [4]byte
 	session   [8]byte
 	signature [64]byte
 }
@@ -36,26 +40,33 @@ type handShake struct {
 	signature [64]byte
 }
 
+func extractIP(buf []byte) net.IP {
+	return net.IPv4(buf[0], buf[1], buf[2], buf[3])
+}
+
 func (hs *startHandShake) dump(pk *ecdsa.PrivateKey) ([]byte, error) {
 	var e error
-	buf := make([]byte, startHandShakeSize)
-	copy(buf, hs.session[:])
-	hs.signature, e = signMessage(pk, buf[0:startHandShakeSigOffset])
+	buf := make([]byte, sizeSTR)
+
+	copy(buf[0:strSesOffset], hs.ip[:])
+	copy(buf[strSesOffset:strSigOffset], hs.session[:])
+	hs.signature, e = signMessage(pk, buf[0:strSigOffset])
 	if e != nil {
 		return nil, fmt.Errorf("at signing start handshake %w", e)
 	}
-	copy(buf[startHandShakeSigOffset:], hs.signature[:])
+	copy(buf[strSigOffset:], hs.signature[:])
 	return buf, nil
 }
 
 func (hs *startHandShake) load(pk *ecdsa.PublicKey, data []byte) error {
 
-	if len(data) < startHandShakeSize {
+	if len(data) < sizeSTR {
 		return fmt.Errorf("invalid data size")
 	}
-	copy(hs.session[:], data[:startHandShakeSigOffset])
-	copy(hs.signature[:], data[startHandShakeSigOffset:startHandShakeSize])
-	valid := verifySignature(pk, data[0:startHandShakeSigOffset], hs.signature)
+	copy(hs.ip[:], data[:strSesOffset])
+	copy(hs.session[:], data[strSesOffset:strSigOffset])
+	copy(hs.signature[:], data[strSigOffset:sizeSTR])
+	valid := verifySignature(pk, data[0:strSigOffset], hs.signature)
 	if !valid {
 		return fmt.Errorf("invalid signature")
 	}
@@ -63,31 +74,31 @@ func (hs *startHandShake) load(pk *ecdsa.PublicKey, data []byte) error {
 }
 
 func (hs *startHandShake) size() int {
-	return startHandShakeSize
+	return sizeSTR
 }
 
 func (hs *handShake) dump(pk *ecdsa.PrivateKey) ([]byte, error) {
 	var e error
-	buf := make([]byte, handShakeSize)
+	buf := make([]byte, sizeXHS)
 	copy(buf, hs.session[:])
-	copy(buf[handShakeEPKOffset:], hs.epk[:])
-	hs.signature, e = signMessage(pk, buf[0:handShakeSigOffset])
+	copy(buf[xhsEPKOffset:], hs.epk[:])
+	hs.signature, e = signMessage(pk, buf[0:xhsSigOffset])
 	if e != nil {
 		return nil, fmt.Errorf("at signing handshake %w", e)
 	}
-	copy(buf[handShakeSigOffset:], hs.signature[:])
+	copy(buf[xhsSigOffset:], hs.signature[:])
 	return buf, nil
 }
 
 func (hs *handShake) load(pk *ecdsa.PublicKey, data []byte) error {
 
-	if len(data) < handShakeSize {
+	if len(data) < sizeXHS {
 		return fmt.Errorf("invalid data size")
 	}
-	copy(hs.session[:], data[:handShakeEPKOffset])
-	copy(hs.epk[:], data[handShakeEPKOffset:handShakeSigOffset])
-	copy(hs.signature[:], data[handShakeSigOffset:handShakeSize])
-	valid := verifySignature(pk, data[0:handShakeSigOffset], hs.signature)
+	copy(hs.session[:], data[:xhsEPKOffset])
+	copy(hs.epk[:], data[xhsEPKOffset:xhsSigOffset])
+	copy(hs.signature[:], data[xhsSigOffset:sizeXHS])
+	valid := verifySignature(pk, data[0:xhsSigOffset], hs.signature)
 	if !valid {
 		return fmt.Errorf("invalid signature")
 	}
@@ -95,5 +106,5 @@ func (hs *handShake) load(pk *ecdsa.PublicKey, data []byte) error {
 }
 
 func (hs *handShake) size() int {
-	return handShakeSize
+	return sizeXHS
 }

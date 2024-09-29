@@ -3,7 +3,6 @@ package sdtl
 import "fmt"
 
 const (
-	dataFrameMsg              = 0xaa
 	dataFrameTagSize          = 16
 	dataFrameNonceSize        = 12
 	dataFrameNonceOffset      = 0
