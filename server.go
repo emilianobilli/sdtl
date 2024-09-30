@@ -72,7 +72,7 @@ func routeMsg(msg *IOMessage) (*IOMessage, error) {
 	if e != nil {
 		return nil, errorf("routeMsg", "invalid message", e)
 	}
-
+	fmt.Println(b)
 	iphdr, e := ipv4.ParseHeader(b)
 	if e != nil {
 		return nil, errorf("routeMsg", "invalid encapsulated message", e)
