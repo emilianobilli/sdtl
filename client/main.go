@@ -51,7 +51,7 @@ func main() {
 	fmt.Println(sd.Connect("18.212.245.20:7000", pb, *ip))
 
 	go func() {
-		sdtl.Forward(sd, u, 1442)
+		sdtl.Forward(sd, u, 1500)
 	}()
-	sdtl.Forward(u, sd, 1442)
+	sdtl.Forward(u, sd, 1500)
 }
