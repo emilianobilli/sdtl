@@ -11,6 +11,7 @@ import "C"
 import (
 	"fmt"
 	"os"
+	"unsafe"
 )
 
 func OpenUtun() (*Utun, error) {
@@ -22,7 +23,7 @@ func OpenUtun() (*Utun, error) {
 		return nil, fmt.Errorf("alloc ifname: %v", err)
 	}
 
-	defer func() { C.free(unsafe.pointer(dev)) }()
+	defer func() { C.free(unsafe.Pointer(dev)) }()
 	fd := C.tun_alloc(dev)
 	if fd == -1 {
 		err := C.GoString(C.sys_error())
