@@ -160,28 +160,27 @@ func (s *Socket) handShakeClient() error {
 	return err
 }
 
-func (s *Socket) Send(data []byte) error {
+func (s *Socket) Write(data []byte) (int, error) {
 	var buffer [2048]byte
 
 	buffer[0] = ProtocolVer
 	buffer[1] = msgDFE
 	tmp, err := dumpDataFrame(s.encrypt, data)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	copy(buffer[2:], tmp)
 	_, err = s.conn.WriteToUDP(buffer[:len(tmp)+2], s.raddr)
-	return err
+	return len(tmp), err
 }
 
-func (s *Socket) Recv() ([]byte, error) {
-	var buffer [2048]byte
+func (s *Socket) Read(buffer []byte) (int, error) {
 
 	for {
 		n, addr, err := s.conn.ReadFromUDP(buffer[:])
 		if err != nil {
-			return nil, err
+			return 0, err
 		}
 		if addr.String() != s.raddr.String() {
 			continue // Drop
@@ -193,8 +192,9 @@ func (s *Socket) Recv() ([]byte, error) {
 
 		tmp, err := loadDataFrame(s.encrypt, buffer[2:n])
 		if err != nil {
-			return nil, err
+			return 0, err
 		}
-		return tmp, nil
+		copy(buffer[0:len(tmp)], tmp)
+		return len(tmp), nil
 	}
 }

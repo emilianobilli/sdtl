@@ -1,9 +1,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"os"
 	"sdtl"
-	"time"
 )
 
 const (
@@ -18,7 +19,18 @@ func main() {
 		fmt.Println(e)
 		return
 	}
-	fmt.Println(u.SetIP("10.0.0.1", "255.255.255.0"))
+
+	ip := flag.String("ip", "", "La dirección IP que quieres configurar")
+
+	// Parsear los argumentos de línea de comandos
+	flag.Parse()
+
+	// Verificar si el argumento "ip" fue proporcionado
+	if *ip == "" {
+		fmt.Println("Error: Debes proporcionar una dirección IP con el argumento -ip.")
+		os.Exit(1)
+	}
+	fmt.Println(u.SetIP(*ip, "255.255.255.0"))
 
 	pk, e := sdtl.PrivateFromPemFile(private)
 	if e != nil {
@@ -35,6 +47,10 @@ func main() {
 		fmt.Println(e)
 		return
 	}
-	fmt.Println(sd.Connect("18.212.245.20:7000", pb, "10.0.0.2"))
-	time.Sleep(time.Second * 50)
+	fmt.Println(sd.Connect("18.212.245.20:7000", pb, *ip))
+
+	go func() {
+		sdtl.Forward(sd, u, 1442)
+	}()
+	sdtl.Forward(u, sd, 1442)
 }

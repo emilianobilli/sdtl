@@ -28,6 +28,24 @@ char *sys_error() {
 	return strerror(errno);
 }
 
+int set_mtu(const char *iface_name, int mtu) {
+    struct ifreq ifr;
+    int sockfd;
+
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        return -1;
+    }
+
+    ifr.ifr_ifru.ifru_mtu = mtu;
+	if (ioctl(sockfd, SIOCSIFMTU, &ifr) < 0) {
+        close(sockfd);
+        return -1;
+    }
+    close(sockfd);
+    return 0;
+}
+
 int configure_interface(const char* iface_name, const char* ip_address, const char* netmask) {
     struct ifreq ifr;
     int sockfd;
