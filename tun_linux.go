@@ -22,8 +22,7 @@ func OpenUtun() (*Utun, error) {
 		return nil, fmt.Errorf("alloc ifname: %v", err)
 	}
 
-	defer C.free(dev)
-
+	defer func() { C.free(unsafe.pointer(dev)) }()
 	fd := C.tun_alloc(dev)
 	if fd == -1 {
 		err := C.GoString(C.sys_error())

@@ -8,7 +8,7 @@ extern char *get_utun_name(int fd);
 
 #elif defined(__linux__)
 extern char *alloc_ifname();
-extern tun_alloc(char *dev);
+extern int tun_alloc(char *dev);
 
 #endif
 
