@@ -1,5 +1,13 @@
 package sdtl
 
+/*
+#cgo CFLAGS: -Wall
+#cgo LDFLAGS: -framework CoreFoundation -framework SystemConfiguration
+#include <stdlib.h>
+#include <unistd.h>
+#include "tun.h"
+*/
+import "C"
 import (
 	"fmt"
 	"os"
