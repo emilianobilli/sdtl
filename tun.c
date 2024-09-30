@@ -21,8 +21,48 @@
 #define UTUN_CONTROL_NAME "com.apple.net.utun_control"
 #endif
 
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 char *sys_error() {
 	return strerror(errno);
+}
+
+int configure_interface(const char* iface_name, const char* ip_address, const char* netmask) {
+    struct ifreq ifr;
+    int sockfd;
+    struct sockaddr_in addr;
+    
+    // Crear socket para realizar la configuración
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        return -1;
+    }
+
+    // Limpiar la estructura ifreq y establecer el nombre de la interfaz
+    memset(&ifr, 0, sizeof(ifr));
+    strncpy(ifr.ifr_name, iface_name, IFNAMSIZ);
+
+    addr.sin_addr.s_addr = inet_addr(ip_address);
+    addr.sin_family = AF_INET;
+    addr.sin_len = sizeof(struct sockaddr_in);
+    // Configurar la dirección IP
+    memcpy(&(ifr.ifr_ifru.ifru_addr), &addr, sizeof(struct sockaddr_in));
+    if (ioctl(sockfd, SIOCSIFADDR, &ifr) < 0) {
+        close(sockfd);
+        return -1;
+    }
+
+    // Configurar la máscara de red
+    addr.sin_addr.s_addr = inet_addr(netmask);
+    memcpy(&(ifr.ifr_ifru.ifru_addr), &addr, sizeof(struct sockaddr_in));
+    if (ioctl(sockfd, SIOCSIFNETMASK, &ifr) < 0) {
+        close(sockfd);
+        return -1;
+    }
+
+    close(sockfd);
+    return 0;
 }
 
 #if defined(__APPLE__)

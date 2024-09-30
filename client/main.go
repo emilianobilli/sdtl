@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sdtl"
+	"time"
 )
 
 const (
@@ -12,7 +13,12 @@ const (
 
 func main() {
 
-	fmt.Println(sdtl.OpenUtun())
+	u, e := sdtl.OpenUtun()
+	if e != nil {
+		fmt.Println(e)
+		return
+	}
+	fmt.Println(u.SetIP("10.0.0.1", "255.255.255.0"))
 
 	pk, e := sdtl.PrivateFromPemFile(private)
 	if e != nil {
@@ -30,5 +36,5 @@ func main() {
 		return
 	}
 	fmt.Println(sd.Connect("18.212.245.20:7000", pb, "10.0.0.2"))
-
+	time.Sleep(time.Second * 50)
 }

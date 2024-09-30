@@ -35,3 +35,7 @@ func OpenUtun() (*Utun, error) {
 	u.Name = C.GoString(dev)
 	return &u, nil
 }
+
+func (u *Utun) SetIP(ip string) error {
+
+}
