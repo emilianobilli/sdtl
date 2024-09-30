@@ -198,6 +198,7 @@ func (s *Server) ListenAndServe() {
 			msg = nil
 		case msgDFE:
 			// Data Frame Encripted
+			fmt.Println(msg)
 			msg, err = routeMsg(msg)
 
 		}
