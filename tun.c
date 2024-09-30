@@ -63,6 +63,10 @@ int configure_interface(const char* iface_name, const char* ip_address, const ch
         return -1;
     }
 
+#if defined (__linux__)
+    ifr.ifr_flags |= (IFF_UP | IFF_RUNNING);
+    ioctl(sockfd, SIOCSIFFLAGS, &ifr);
+#endif
     close(sockfd);
     return 0;
 }
