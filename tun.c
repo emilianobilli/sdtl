@@ -45,7 +45,9 @@ int configure_interface(const char* iface_name, const char* ip_address, const ch
 
     addr.sin_addr.s_addr = inet_addr(ip_address);
     addr.sin_family = AF_INET;
+#if defined (__APPLE__)
     addr.sin_len = sizeof(struct sockaddr_in);
+#endif
     // Configurar la dirección IP
     memcpy(&(ifr.ifr_ifru.ifru_addr), &addr, sizeof(struct sockaddr_in));
     if (ioctl(sockfd, SIOCSIFADDR, &ifr) < 0) {
