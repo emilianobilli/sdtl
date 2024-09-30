@@ -12,6 +12,8 @@ const (
 
 func main() {
 
+	fmt.Println(sdtl.OpenUtun())
+
 	pk, e := sdtl.PrivateFromPemFile(private)
 	if e != nil {
 		fmt.Println(e)
