@@ -29,7 +29,7 @@ func (u *Utun) SetIP(ip string, mask string) error {
 	defer func() { C.free(unsafe.Pointer(csmask)) }()
 	ret := C.configure_interface(name, csip, csmask)
 	if ret == -1 {
-		return fmt.Errorf("setting interface: %v", C.GoString(C.sys_error()))
+		return fmt.Errorf("setting interface address: %v", C.GoString(C.sys_error()))
 	}
 	return nil
 }
@@ -40,7 +40,7 @@ func (u *Utun) SetMTU(val int) error {
 
 	ret := C.set_mtu(name, C.int(val))
 	if ret == -1 {
-		return fmt.Errorf("setting interface: %v", C.GoString(C.sys_error()))
+		return fmt.Errorf("setting interface mtu: %v", C.GoString(C.sys_error()))
 	}
 	u.MTU = val
 	return nil

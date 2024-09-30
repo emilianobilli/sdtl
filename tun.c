@@ -37,6 +37,8 @@ int set_mtu(const char *iface_name, int mtu) {
         return -1;
     }
 
+    memset(&ifr, 0, sizeof(ifr));
+    strncpy(ifr.ifr_name, iface_name, IFNAMSIZ);
     ifr.ifr_ifru.ifru_mtu = mtu;
 	if (ioctl(sockfd, SIOCSIFMTU, &ifr) < 0) {
         close(sockfd);

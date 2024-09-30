@@ -31,6 +31,7 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Println(u.SetIP(*ip, "255.255.255.0"))
+	fmt.Println(u.SetMTU(1442))
 
 	pk, e := sdtl.PrivateFromPemFile(private)
 	if e != nil {
